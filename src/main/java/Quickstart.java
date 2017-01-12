@@ -1,9 +1,12 @@
+import com.google.api.client.auth.oauth2.ClientParametersAuthentication;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.JsonFactory;
@@ -12,10 +15,11 @@ import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.*;
 import com.google.api.services.sheets.v4.Sheets;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.nio.file.Files;
+import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 public class Quickstart {
@@ -87,9 +91,37 @@ public class Quickstart {
      * @throws IOException
      */
     public static Sheets getSheetsService() throws IOException {
-        Credential credential = authorize();
+        Credential credential = null;
+
+        try {
+            File p12File = new File(Quickstart.class.getClassLoader().getResource("test-api-client-b814bd661df9.p12").getFile());
+            credential = createCredentialForServiceAccount(
+                    HTTP_TRANSPORT,
+                    JSON_FACTORY,
+                    "test1-477@test-api-client-154614.iam.gserviceaccount.com",
+                    SCOPES,
+                    p12File
+            );
+        } catch (GeneralSecurityException e) {
+            e.printStackTrace();
+        }
+
         return new Sheets.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
                 .setApplicationName(APPLICATION_NAME)
+                .build();
+    }
+
+    public static GoogleCredential createCredentialForServiceAccount(
+            HttpTransport transport,
+            JsonFactory jsonFactory,
+            String serviceAccountId,
+            Collection<String> serviceAccountScopes,
+            File p12File) throws GeneralSecurityException, IOException {
+        return new GoogleCredential.Builder().setTransport(transport)
+                .setJsonFactory(jsonFactory)
+                .setServiceAccountId(serviceAccountId)
+                .setServiceAccountScopes(serviceAccountScopes)
+                .setServiceAccountPrivateKeyFromP12File(p12File)
                 .build();
     }
 
